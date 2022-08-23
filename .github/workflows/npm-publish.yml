@@ -31,3 +31,52 @@ jobs:
       - run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+
+# 觸發工作流程的事件
+on:
+  push:
+    branches:
+      - main
+      - "releases/**"
+      - dev
+
+# 按順序執行作業
+jobs:
+  publish-gpr:
+    # 指定的執行器環境
+    runs-on: ubuntu-latest
+    # 設定 node 版本
+    strategy:
+      matrix:
+        node-version: [16]
+    steps:
+      # 拉取 github 倉庫程式碼
+      - uses: actions/checkout@v3
+      # 設定 node 環境
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          # 設定發包 npm 地址倉庫
+          registry-url: https://registry.npmjs.org
+      # 安裝依賴，相當於 npm ci
+      - name: Install dependencies 📦️
+        run: npm install
+      # 執行構建步驟
+      - name: 構建
+        run: |
+          npm run build
+      # 執行部署
+      - name: 部署
+        # 這個 action 會根據配置自動推送程式碼到指定分支
+        uses: JamesIves/github-pages-deploy-action@releases/v3
+        with:
+          # 指定金鑰，即在第一步中設定的
+          ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+          # 指定推送到的遠端分支
+          BRANCH: pages
+          # 指定構建之後的產物要推送哪個目錄的程式碼
+          FOLDER: build
+      - run: npm publish
+        env:
+          # 剛剛設定的 NPM_TOKEN
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
