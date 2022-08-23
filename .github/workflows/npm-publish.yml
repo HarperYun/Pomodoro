@@ -71,12 +71,12 @@ jobs:
         uses: JamesIves/github-pages-deploy-action@releases/v3
         with:
           # 指定金鑰，即在第一步中設定的
-          ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+          ACCESS_TOKEN: ${{ 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 }}
           # 指定推送到的遠端分支
           BRANCH: pages
           # 指定構建之後的產物要推送哪個目錄的程式碼
-          FOLDER: build
+          FOLDER: Pomodoro
       - run: npm publish
         env:
           # 剛剛設定的 NPM_TOKEN
-          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+          NODE_AUTH_TOKEN: ${{ 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 }}
