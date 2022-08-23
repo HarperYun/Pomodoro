@@ -1,149 +1,19 @@
-# This workflow will run tests using node and then publish a package to GitHub Packages when a release is created
-# For more information see: https://help.github.com/actions/language-and-framework-guides/publishing-nodejs-packages
-
-# name: Node.js Package
-
-# on:
-#   release:
-#     types: [created]
-
-# jobs:
-#   build:
-#     runs-on: ubuntu-latest
-#     steps:
-#       - uses: actions/checkout@v3
-#       - uses: actions/setup-node@v3
-#         with:
-#           node-version: 16
-#       - run: npm ci
-#       - run: npm test
-
-#   publish-npm:
-#     needs: build
-#     runs-on: ubuntu-latest
-#     steps:
-#       - uses: actions/checkout@v3
-#       - uses: actions/setup-node@v3
-#         with:
-#           node-version: 16
-#           registry-url: https://registry.npmjs.org/
-#       - run: npm ci
-#       - run: npm publish
-#         env:
-#           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
-
-# # 觸發工作流程的事件
-# on:
-#   push:
-#     branches:
-#       - main
-#       - "releases/**"
-#       - dev
-
-# # 按順序執行作業
-# jobs:
-#   publish-gpr:
-#     # 指定的執行器環境
-#     runs-on: ubuntu-latest
-#     # 設定 node 版本
-#     strategy:
-#       matrix:
-#         node-version: [16]
-#     steps:
-#       # 拉取 github 倉庫程式碼
-#       - uses: actions/checkout@v3
-#       # 設定 node 環境
-#       - uses: actions/setup-node@v3
-#         with:
-#           node-version: ${{ matrix.node-version }}
-#           # 設定發包 npm 地址倉庫
-#           registry-url: https://registry.npmjs.org
-#       # 安裝依賴，相當於 npm ci
-#       - name: Install dependencies 📦️
-#         run: npm install
-#       # 執行構建步驟
-#       - name: 構建
-#         run: |
-#           npm run build
-#       # 執行部署
-#       - name: 部署
-#         # 這個 action 會根據配置自動推送程式碼到指定分支
-#         uses: JamesIves/github-pages-deploy-action@releases/v3
-#         with:
-#           # 指定金鑰，即在第一步中設定的
-#           ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
-#           # 指定推送到的遠端分支
-#           BRANCH: pages
-#           # 指定構建之後的產物要推送哪個目錄的程式碼
-#           FOLDER: 
-#       - run: npm publish
-#         env:
-#           # 剛剛設定的 NPM_TOKEN
-#           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-# link: https://sujingjhong.com/posts/how-to-deploy-hugo-automatically-with-github-actions/
-# author: lisez <mm4324@gmail.com>
-name: Auto publish to public site
-
-# 只有推送到 master 才自動化
-on:
-  push:
-    branches: 
-    - master
-    - main
-    - "releases/**"
-    - dev
-
+name: Build and Deploy
+on: [push]
 jobs:
-  hugo-publish:
-    name: publish content to public site
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      # 使用當前的 repo
-      - name: checkout private repo
-        uses: actions/checkout@v3
-        with:
-          # 因為目前的 repo 有使用到 submodule，所以 submodule 也要一併同步	
-          # 不然原本的 repo 是沒有 submodule 的內容
-          submodules: true
-          token: ${{ secrets.GITHUB_PAT }}
+      - name: Checkout 🛎️
+        uses: actions/checkout@v2.3.1
 
-      # 我的公開網站是放置在另一個 repo 所以這裡也要 clone 一份下來處理
-      # 因為我 Hugo 預設是產生檔案到 public 資料夾，所以這邊我也是 clone 到那裡
-      - name: checkout public repo
-        uses: actions/checkout@v3
-        with:
-          path: public
-          # 記得去產生一把 personal access token 放到 repo 的 secrets 裡
-          # 然後我 secrets 裡的名稱就叫 GITHUB_PAT，用別的名稱的話記得改掉
-          # 參考 https://help.github.com/en/actions/automating-your-workflow-with-github-actions/authenticating-with-the-github_token
-          token: ${{ secrets.GITHUB_PAT }}
-
-      # 使用別人做好的 Hugo Actions
-      - name: setup hugo
-        uses: peaceiris/actions-hugo@v2
-        with:
-          hugo-version: latest
-          extended: true
-
-      # 開始用 Hugo 產生檔案囉
-      - name: build content to public site
-        working-directory: ./
-        # --cleanDestinationDir 清除舊檔案
-        run: hugo --minify --gc --cleanDestinationDir
-
-      # 將檔案 commit 到 網站 repo
-      - name: deploy and publish updates
-        working-directory: ./public
-        # user.email 還有 user.name 可以取自己喜歡的，一定要設定不然會出錯
+      - name: Install and Build 🔧 
         run: |
-          # 當 git 有更動時才進行動作
-          if [[ `git status --porcelain` ]]; then
-            git config --local user.email "action@github.com"
-            git config --local user.name "GitHub Action"
-            git add . -A
-            git commit -m "[chore] Auto publish"
-            git push origin
-          else
-            echo "content no changes"
-          fi
+          npm install
+          npm run build
+
+      - name: Deploy 🚀
+        uses: JamesIves/github-pages-deploy-action@4.1.5
+        with:
+          branch: gh-pages
+          folder: build
